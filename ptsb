@@ -1,0 +1,120 @@
+import csv
+import math
+import matplotlib.pyplot as plt
+import numpy as np
+
+COUNTRY = "Vietnam"
+print(f"\nCAC SAN BAY O {COUNTRY.upper()}:")
+print("-" * 40)
+
+with open("airports.dat", encoding="utf-8") as f:
+    reader = csv.reader(f)
+    for row in reader:
+        if len(row) > 3 and row[3].strip().lower() == COUNTRY.lower():
+            print(f"  • {row[1]} (ID: {row[0]})")
+
+latitudes = {}
+longitudes = {}
+
+with open("airports.dat", encoding="utf-8") as f:
+    for row in csv.reader(f):
+        if len(row) >= 8:
+            airport_id = row[0].strip()
+            try:
+                latitudes[airport_id] = float(row[6])
+                longitudes[airport_id] = float(row[7])
+            except:
+                continue
+
+print(f"\nDa doc {len(latitudes)} san bay")
+
+def haversine_distance(lat1, lon1, lat2, lon2):
+    R = 6371
+    lat1 = math.radians(lat1)
+    lon1 = math.radians(lon1)
+    lat2 = math.radians(lat2)
+    lon2 = math.radians(lon2)
+    dlat = lat2 - lat1
+    dlon = lon2 - lon1
+    a = math.sin(dlat/2)**2 + math.cos(lat1) * math.cos(lat2) * math.sin(dlon/2)**2
+    c = 2 * math.asin(math.sqrt(a))
+    return R * c
+
+distances = []
+success = 0
+failed = 0
+
+print("\nDang tinh khoang cach cac tuyen bay...")
+
+with open("routes.dat", encoding="utf-8") as f:
+    reader = csv.reader(f)
+    for row in reader:
+        if len(row) >= 6:
+            source_airport = row[3].strip()
+            dest_airport = row[5].strip()
+            if source_airport in latitudes and dest_airport in latitudes:
+                try:
+                    d = haversine_distance(
+                        latitudes[source_airport], longitudes[source_airport],
+                        latitudes[dest_airport], longitudes[dest_airport]
+                    )
+                    distances.append(d)
+                    success += 1
+                except:
+                    failed += 1
+            else:
+                failed += 1
+
+print(f"So tuyen thanh cong: {success:,}")
+print(f"So tuyen bo qua: {failed:,}")
+print(f"Tong so tuyen: {len(distances):,}")
+
+if len(distances) > 0:
+    dist_array = np.array(distances)
+    print("\nTHONG KE KHOANG CACH:")
+    print("-" * 40)
+    print(f"Khoang cach nho nhat: {np.min(dist_array):.2f} km")
+    print(f"Khoang cach lon nhat: {np.max(dist_array):.2f} km")
+    print(f"Khoang cach trung binh: {np.mean(dist_array):.2f} km")
+    print(f"Trung vi: {np.median(dist_array):.2f} km")
+
+plt.figure(figsize=(12, 6))
+plt.hist(distances, bins=100, facecolor='red', edgecolor='darkred', alpha=0.7)
+plt.title(f'PHAN BO KHOANG CACH CAC TUYEN BAY\n({len(distances):,} tuyen, 100 bins)')
+plt.xlabel("Khoang cach (km)")
+plt.ylabel("So luong chuyen bay")
+plt.grid(True, alpha=0.3)
+plt.tight_layout()
+plt.show()
+
+print("\n" + "="*60)
+print("PHAN TICH DU LIEU TRAI TI NAN (Camp_stats.csv)")
+print("="*60)
+
+camp_data = [
+    ["Kakuma", "Kenya", 90457, 153959],
+    ["Hagadera", "Kenya", 59185, 106968],
+    ["Adjumani", "Uganda", 54051, 96926],
+    ["Dagahaley", "Kenya", 39526, 88486],
+    ["Zaatari", "Jordan", 0, 84773]
+]
+
+total_2006 = 0
+total_2014 = 0
+
+print("\nDU LIEU TRAI TI NAN:")
+print("-" * 60)
+print(f"{'Trai':<12} {'Quoc gia':<10} {'2006':>10} {'2014':>10} {'Tang':>10}")
+print("-" * 60)
+
+for camp in camp_data:
+    name, country, pop2006, pop2014 = camp
+    increase = pop2014 - pop2006
+    total_2006 += pop2006
+    total_2014 += pop2014
+    print(f"{name:<12} {country:<10} {pop2006:>10,} {pop2014:>10,} {increase:>+10,}")
+
+print("-" * 60)
+print(f"{'TONG':<12} {'':<10} {total_2006:>10,} {total_2014:>10,} {total_2014-total_2006:>+10,}")
+print(f"\nTy le tang: {((total_2014-total_2006)/total_2006*100):.2f}%")
+print("\nKET LUAN: Tat ca trai deu tang dan so, Zaatari tang manh nhat")
